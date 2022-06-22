@@ -79,11 +79,26 @@ def main(args):
             trainer.method.train_generator = train_generator
             trainer.method.dataset_test = test_dataset
 
-            # Predictions on normal dataset
             thresholod_with_percentile = False
+            thresholod_with_valsubset = False
             if thresholod_with_percentile:
+                # Predictions on normal dataset
                 Y_t, Scores_t, M_t, Mhat_t, X_t, Xhat_t = inference_dataset(trainer.method, dataset)
                 th = np.percentile(np.ravel(Mhat_t), 99)
+            elif thresholod_with_valsubset:
+                val_dataset = TestDataset(exp['dir_datasets'], item=exp['item'], partition='val',
+                                          input_shape=exp['input_shape'],
+                                          channel_first=True, norm='max', histogram_matching=True)
+                # Make predictions
+                _, Scores, _, Mhat, _, Xhat = inference_dataset(trainer.method, val_dataset)
+                # Input to dataset
+                val_dataset.Scores = Scores
+                val_dataset.Mhat = Mhat
+                val_dataset.Xhat = Xhat
+                # Get threshold
+                _, th = evaluate_anomaly_localization(val_dataset, save_maps=False,
+                                                      dir_out=trainer.method.dir_results,
+                                                      th=None)
             else:
                 th = None
 
